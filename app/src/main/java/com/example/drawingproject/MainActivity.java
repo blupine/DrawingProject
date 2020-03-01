@@ -1,5 +1,6 @@
 package com.example.drawingproject;
 
+import android.content.Intent;
 import android.os.Bundle;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -24,6 +25,8 @@ import android.view.Menu;
 
 public class MainActivity extends AppCompatActivity {
 
+    private Toolbar mToolbar;
+    private FloatingActionButton mFab;
     private NavigationView mNavigationView;
     private AppBarConfiguration mAppBarConfiguration;
     private DrawerLayout mDrawerLayout;
@@ -35,15 +38,14 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Toolbar toolbar = findViewById(R.id.toolbar_main);
-        setSupportActionBar(toolbar);
+        mToolbar= findViewById(R.id.toolbar_main);
+        setSupportActionBar(mToolbar);
 
-        FloatingActionButton fab = findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
+        mFab = findViewById(R.id.fab);
+        mFab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                startActivity(new Intent(MainActivity.this, CanvasActivity.class));
             }
         });
 
