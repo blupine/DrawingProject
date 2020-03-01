@@ -7,14 +7,15 @@
     android:orientation="vertical"
     tools:context=".CanvasActivity">
 
-    <include layout="@layout/app_bar_canvas"/>
 
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <com.android.graphics.CanvasView>
-
-        </com.android.graphics.CanvasView>
+        <com.example.drawingproject.CanvasView.CanvasView
+            android:id="@+id/canvas"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center_horizontal" />
     </FrameLayout>
 </LinearLayout>
