@@ -2,8 +2,16 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
-        android:id="@+id/action_settings"
+        android:id="@+id/undo"
+        android:icon="@drawable/ic_undo_black_24dp"
         android:orderInCategory="100"
-        android:title="@string/canvas_title"
-        app:showAsAction="never" />
+        android:title="@string/canvas_redo"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/redo"
+        android:icon="@drawable/ic_redo_black_24dp"
+        android:orderInCategory="101"
+        android:title="@string/canvas_undo"
+        app:showAsAction="ifRoom" />
+
 </menu>

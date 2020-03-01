@@ -22,6 +22,7 @@ import android.graphics.PorterDuffXfermode;
 import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -34,6 +35,7 @@ import java.util.List;
  */
 public class CanvasView extends View{
 
+    private static String TAG = "CanvasView";
     // Enumeration for Mode
     public enum Mode {
         DRAW,
@@ -192,6 +194,7 @@ public class CanvasView extends View{
      * @return path This is returned as the instance of Path
      */
     private Path createPath(MotionEvent event) {
+        Log.d(TAG,"createPath : " + event.getX() + ", " + event.getY());
         Path path = new Path();
 
         // Save for ACTION_MOVE

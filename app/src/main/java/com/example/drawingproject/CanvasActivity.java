@@ -5,6 +5,7 @@ import androidx.appcompat.widget.Toolbar;
 
 import android.os.Bundle;
 import android.view.Menu;
+import android.view.MenuItem;
 
 import com.example.drawingproject.CanvasView.CanvasView;
 
@@ -29,4 +30,17 @@ public class CanvasActivity extends AppCompatActivity {
         return true;
     }
 
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch(item.getItemId()){
+            case R.id.redo:
+                mCanvas.redo();
+                return true;
+            case R.id.undo:
+                mCanvas.undo();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
 }
