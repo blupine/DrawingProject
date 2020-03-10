@@ -1,24 +1,32 @@
 package com.example.drawingproject;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
 
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 
 import com.example.drawingproject.CanvasView.CanvasView;
+import com.example.drawingproject.CanvasView.CanvasView2;
+import com.example.drawingproject.drawview.views.DrawCameraView;
+import com.example.drawingproject.drawview.views.DrawView;
 
 public class CanvasActivity extends AppCompatActivity {
 
     private CanvasView mCanvas;
+    private CanvasView2 mCanvas2;
+    private DrawView mDrawview;
+    private DrawCameraView mCameraView;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_canvas);
         mCanvas = findViewById(R.id.canvas);
-
+//        mDrawview = findViewById(R.id.canvas);
+//        mCameraView = findViewById(R.id.camera_view);
+//        mCameraView.attachCameraView();
     }
+
     public CanvasView getCanvas() {
         return this.mCanvas;
     }
@@ -34,10 +42,10 @@ public class CanvasActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch(item.getItemId()){
             case R.id.redo:
-                mCanvas.redo();
+                mDrawview.redo();
                 return true;
             case R.id.undo:
-                mCanvas.undo();
+                mDrawview.undo();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);

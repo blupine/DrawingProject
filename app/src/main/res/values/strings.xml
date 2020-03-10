@@ -1,16 +1,23 @@
 <resources>
     <string name="app_name">DrawingProject</string>
-    <string name="navigation_drawer_open">Open navigation drawer</string>
-    <string name="navigation_drawer_close">Close navigation drawer</string>
-    <string name="nav_header_title">Android Studio</string>
-    <string name="nav_header_subtitle">android.studio@android.com</string>
-    <string name="nav_header_desc">Navigation header</string>
+
+    <!-- string value used in MainActivity   -->
     <string name="action_settings">Settings</string>
 
+
+    <!-- string value used in CanvasActivity   -->
     <string name="canvas_title">Canvas</string>
     <string name="canvas_redo">Redo</string>
     <string name="canvas_undo">Undo</string>
 
+
+    <!-- string value used in navigation menu   -->
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+
+    <string name="nav_header_title">Android Studio</string>
+    <string name="nav_header_subtitle">android.studio@android.com</string>
+    <string name="nav_header_desc">Navigation header</string>
     <string name="menu_notebook">Notebook</string>
     <string name="menu_recent">Recent</string>
     <string name="menu_marked">Marked</string>
@@ -18,4 +25,6 @@
     <string name="menu_unclassfied">Unclassfied</string>
     <string name="menu_share">Share</string>
     <string name="menu_send">Send</string>
+
+
 </resources>
