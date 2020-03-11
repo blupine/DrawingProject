@@ -12,17 +12,25 @@ public class DrawInfo {
     // private BackgroundIMG bgImg;
     private Path mPath;
     private Paint mPaint;
+    private float lastX, lastY;
 
     public DrawInfo(MotionEvent event, Paint paint, int penMode){
+        lastX = event.getX();
+        lastY = event.getY();
+
         this.mPath = new Path();
-        this.mPath.moveTo(event.getX(), event.getY());
-        this.mPaint = paint;
+        this.mPath.moveTo(lastX, lastY);
+        this.mPaint = new Paint(paint);
         this.mPenMode = penMode;
+
     }
 
-    public void moveTo(MotionEvent event){
-        Log.d(TAG, "moveTo : " + event.getX() + ", " + event.getY());
-        this.mPath.lineTo(event.getX(), event.getY());
+    public void moveTo(float x, float y){
+
+        this.mPath.lineTo(x, y);
+
+        lastX = x;
+        lastY = y;
     }
 
     public Path getPath(){return this.mPath;}

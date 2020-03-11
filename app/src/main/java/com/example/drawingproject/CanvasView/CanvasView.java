@@ -41,6 +41,7 @@ import java.util.List;
 public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
     private static final String TAG = "CanvasView";
+    private static final float TOUCH_TOLERANCE = 4;
 
     private int penMode = PenMode.PEN;
 
@@ -78,9 +79,10 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
     private void initCanvasView(){
         this.setWillNotDraw(false);
+
         setOnTouchListener(this);
 
-        this.mPaint = new Paint();
+        this.mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         this.mPaint.setAntiAlias(true);
         this.mPaint.setStyle(Paint.Style.STROKE);
         this.mPaint.setStrokeWidth(3F);
@@ -95,42 +97,34 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
         getViewTreeObserver().addOnGlobalLayoutListener(
                 new ViewTreeObserver.OnGlobalLayoutListener() {
 
-                    @SuppressLint("NewApi")
-                    @SuppressWarnings("deprecation")
                     @Override
                     public void onGlobalLayout() {
-                        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN) {
-                            getViewTreeObserver()
-                                    .removeGlobalOnLayoutListener(this);
-                        } else {
-                            getViewTreeObserver()
+
+                        getViewTreeObserver()
                                     .removeOnGlobalLayoutListener(this);
-                        }
+
                         Bitmap init = Bitmap.createBitmap(getWidth(), getHeight(), Bitmap.Config.ARGB_8888);
                         mBitmap = init.copy(Bitmap.Config.ARGB_8888, true);
                         mCanvas = new Canvas(mBitmap);
                         init.recycle();
                     }
                 });
+
+
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
-        Log.d(TAG, "onDraw called. history ptr : " + this.historyPointer);
-
-        if(this.mBitmap != null){
-            canvas.drawBitmap(this.mBitmap, 0, 0, this.mPaint);
-        }
-
-
+//        if(this.mBitmap != null){
+//            canvas.drawBitmap(this.mBitmap, 0, 0, this.mPaint);
+//        }
+//
         for(int i = 0 ; i < this.historyPointer + 1; i++){
-
             DrawInfo info = this.history.get(i);
-            Log.d(TAG, "onDraw: info : color : " + info.getPaint().getColor() + ", path : " + info.getPath());
-            this.mCanvas.drawPath(info.getPath(), info.getPaint());
+            canvas.drawPath(info.getPath(), info.getPaint());
         }
 
-        canvas.drawBitmap(this.mBitmap,0, 0, null);
+        //canvas.drawBitmap(this.mBitmap,0, 0, null);
         super.onDraw(canvas);
 
     }
@@ -138,14 +132,13 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
     @Override
     public boolean onTouch(View v, MotionEvent event) {
-        Log.d(TAG, "onTouch called.");
-        float touchX = event.getX();
-        float touchY = event.getY();
-        switch(event.getAction()){
+        //this.mCanvas.drawPoint(event.getX(), event.getY(), this.mPaint);
+                switch(event.getAction()){
             case MotionEvent.ACTION_MOVE:
                 onActionMove(event);
                 break;
             case MotionEvent.ACTION_DOWN:
+
                 onActionDown(event);
                 break;
             case MotionEvent.ACTION_UP:
@@ -155,7 +148,9 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
                 break;
         }
 
-        // call invalidate() to renew screen
+        float touchX = event.getX();
+        float touchY = event.getY();
+
         if(history.size() > 0){
             mInvalidateRect = new Rect(
                 (int) (touchX - (history.get(historyPointer).getPaint().getStrokeWidth() * 2)),
@@ -163,23 +158,10 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
                 (int) (touchX + (history.get(historyPointer).getPaint().getStrokeWidth() * 2)),
                 (int) (touchY + (history.get(historyPointer).getPaint().getStrokeWidth() * 2)));
         }
-        Log.d(TAG, "onTouch : invalidate -> " + mInvalidateRect.left + "," + mInvalidateRect.top + "," +mInvalidateRect.right + "," + mInvalidateRect.bottom);
+
+        /* call invalidate(Rect) to renew screen */
         this.invalidate(mInvalidateRect.left, mInvalidateRect.top, mInvalidateRect.right, mInvalidateRect.bottom);
-//        invalidate();
-        // return true for serial touch event
-        return true;
-    }
-
-    private void addNewDrawInfo(MotionEvent event){
-        Log.d(TAG, "addNewDraInfo called - adding on hptr : " + historyPointer + " -> " + (historyPointer + 1));
-        DrawInfo dInfo = new DrawInfo(event, this.mPaint, this.penMode);
-        this.history.add(dInfo);
-        historyPointer += 1;
-    }
-
-    private void drawPath(MotionEvent event){
-        Log.d(TAG, "drawPath called - drawing on hptr : " + historyPointer);
-        this.history.get(historyPointer).moveTo(event);
+        return true;  /* return true for serial touch event */
     }
 
     private void onActionDown(MotionEvent event){
@@ -195,14 +177,31 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
     private void onActionMove(MotionEvent event){
         Log.d(TAG, "onActionMove called");
+        float x, y;
         switch(this.penMode){
             case PenMode.PEN:
-                drawPath(event);
+                for(int i = 0 ; i < event.getHistorySize(); i++){
+                    x = event.getHistoricalX(i);
+                    y = event.getHistoricalY(i);
+                    drawPath(x, y);
+                }
+                drawPath(event.getX(), event.getY());
                 break;
             default:
                 break;
         }
     }
+    private void addNewDrawInfo(MotionEvent event){
+        DrawInfo dInfo = new DrawInfo(event, this.mPaint, this.penMode);
+        this.history.add(dInfo);
+        historyPointer += 1;
+    }
+
+    private void drawPath(float x, float y){
+        this.history.get(historyPointer).moveTo(x, y);
+    }
+
+
     private void onActionUp(MotionEvent event){
 
     }

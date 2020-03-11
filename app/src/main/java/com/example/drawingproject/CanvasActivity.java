@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 
 import com.example.drawingproject.CanvasView.CanvasView;
 import com.example.drawingproject.CanvasView.CanvasView2;
@@ -22,6 +23,7 @@ public class CanvasActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_canvas);
         mCanvas = findViewById(R.id.canvas);
+//        mCanvas.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
 //        mDrawview = findViewById(R.id.canvas);
 //        mCameraView = findViewById(R.id.camera_view);
 //        mCameraView.attachCameraView();
