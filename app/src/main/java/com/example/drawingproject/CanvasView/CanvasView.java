@@ -27,6 +27,7 @@ import android.widget.ImageView;
 import androidx.annotation.Nullable;
 import androidx.cardview.widget.CardView;
 
+import com.example.drawingproject.CanvasView.Utils.Bezier;
 import com.example.drawingproject.drawview.views.ZoomRegionView;
 
 import java.util.ArrayList;
@@ -119,12 +120,13 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 //            canvas.drawBitmap(this.mBitmap, 0, 0, this.mPaint);
 //        }
 //
-        for(int i = 0 ; i < this.historyPointer + 1; i++){
-            DrawInfo info = this.history.get(i);
-            canvas.drawPath(info.getPath(), info.getPaint());
-        }
+//        for(int i = 0 ; i < this.historyPointer + 1; i++){
+//            DrawInfo info = this.history.get(i);
+//            info.drawOnCanvas(canvas);
+//        }
 
-        //canvas.drawBitmap(this.mBitmap,0, 0, null);
+        canvas.drawBitmap(this.mBitmap,0, 0, null);
+
         super.onDraw(canvas);
 
     }
@@ -133,16 +135,13 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
     @Override
     public boolean onTouch(View v, MotionEvent event) {
         //this.mCanvas.drawPoint(event.getX(), event.getY(), this.mPaint);
-                switch(event.getAction()){
+        switch(event.getAction()){
             case MotionEvent.ACTION_MOVE:
+            case MotionEvent.ACTION_UP:
                 onActionMove(event);
                 break;
             case MotionEvent.ACTION_DOWN:
-
                 onActionDown(event);
-                break;
-            case MotionEvent.ACTION_UP:
-                onActionUp(event);
                 break;
             default:
                 break;
@@ -177,28 +176,36 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
     private void onActionMove(MotionEvent event){
         Log.d(TAG, "onActionMove called");
-        float x, y;
+        float x, y, p;
         switch(this.penMode){
             case PenMode.PEN:
                 for(int i = 0 ; i < event.getHistorySize(); i++){
+                    /* for missing touch event */
                     x = event.getHistoricalX(i);
                     y = event.getHistoricalY(i);
-                    drawPath(x, y);
+                    p = event.getHistoricalPressure(i);
+//                    this.mCanvas.drawPoint(x, y, this.mPaint);
+                    drawPath(x, y, p);
                 }
-                drawPath(event.getX(), event.getY());
+                drawPath(event);
                 break;
             default:
                 break;
         }
     }
+
     private void addNewDrawInfo(MotionEvent event){
-        DrawInfo dInfo = new DrawInfo(event, this.mPaint, this.penMode);
+        DrawInfo dInfo = new DrawInfo(event, this.mPaint, this.mCanvas,this.penMode);
         this.history.add(dInfo);
         historyPointer += 1;
     }
 
-    private void drawPath(float x, float y){
-        this.history.get(historyPointer).moveTo(x, y);
+    private void drawPath(MotionEvent event){
+        this.history.get(historyPointer).addPoint(event);
+    }
+
+    private void drawPath(float x, float y, float p){
+        this.history.get(historyPointer).addPoint(x, y, p);
     }
 
 
