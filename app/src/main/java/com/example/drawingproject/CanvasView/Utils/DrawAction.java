@@ -19,6 +19,7 @@ public class DrawAction extends HistoricalAction{
 
     private List<StrokePath> mPaths = new ArrayList<>();
     private StrokePath mPath;
+
     private Paint mPaint;
     private float strokeWidth;
 
