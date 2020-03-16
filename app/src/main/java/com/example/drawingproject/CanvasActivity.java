@@ -5,10 +5,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
 
 import com.example.drawingproject.CanvasView.CanvasView;
 import com.example.drawingproject.CanvasView.CanvasView2;
+import com.example.drawingproject.CanvasView.Utils.PenMode;
 import com.example.drawingproject.drawview.views.DrawCameraView;
 import com.example.drawingproject.drawview.views.DrawView;
 
@@ -44,10 +44,16 @@ public class CanvasActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch(item.getItemId()){
             case R.id.redo:
-                mDrawview.redo();
+                mCanvas.redo();
                 return true;
             case R.id.undo:
-                mDrawview.undo();
+                mCanvas.undo();
+                return true;
+            case R.id.pen:
+                mCanvas.penMode(PenMode.PEN);
+                return true;
+            case R.id.eraser:
+                mCanvas.penMode(PenMode.ERASER);
                 return true;
             default:
                 return super.onOptionsItemSelected(item);

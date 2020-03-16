@@ -5,7 +5,7 @@ import android.graphics.Path;
 import java.io.Serializable;
 
 /**
- * Empty class that handles parcelable Path object
+ * Empty class that handles parcelable StrokePath object
  * Created by IngMedina on 28/04/2017.
  */
 

@@ -1,34 +1,24 @@
 package com.example.drawingproject.CanvasView;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.Path;
-import android.graphics.PorterDuff;
-import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
-import android.graphics.RectF;
-import android.os.Build;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.view.GestureDetector;
-import android.view.Gravity;
 import android.view.MotionEvent;
-import android.view.ScaleGestureDetector;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.FrameLayout;
-import android.widget.ImageView;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
-import androidx.cardview.widget.CardView;
 
-import com.example.drawingproject.CanvasView.Utils.Bezier;
-import com.example.drawingproject.drawview.views.ZoomRegionView;
+import com.example.drawingproject.CanvasView.Utils.DrawAction;
+import com.example.drawingproject.CanvasView.Utils.HistoricalAction;
+import com.example.drawingproject.CanvasView.Utils.PenMode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -51,8 +41,10 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
     private Bitmap mBitmap;
     private Rect mInvalidateRect;
 
-    private List<DrawInfo> history = new ArrayList<DrawInfo>();
-    private int historyPointer = -1;
+    private List<HistoricalAction> history = new ArrayList<HistoricalAction>();
+    private int curHistoryPtr = -1;
+    private int lastHistoryPtr = -1;
+
 
     public CanvasView(Context context) {
         super(context);
@@ -68,8 +60,6 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
     public CanvasView(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         initCanvasView();
-
-
     }
 
     public CanvasView(Context context, @Nullable AttributeSet attrs, int defStyleAttr, int defStyleRes) {
@@ -116,19 +106,10 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
     @Override
     protected void onDraw(Canvas canvas) {
-//        if(this.mBitmap != null){
-//            canvas.drawBitmap(this.mBitmap, 0, 0, this.mPaint);
-//        }
-//
-//        for(int i = 0 ; i < this.historyPointer + 1; i++){
-//            DrawInfo info = this.history.get(i);
-//            info.drawOnCanvas(canvas);
-//        }
 
         canvas.drawBitmap(this.mBitmap,0, 0, null);
 
         super.onDraw(canvas);
-
     }
 
 
@@ -152,10 +133,10 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
         if(history.size() > 0){
             mInvalidateRect = new Rect(
-                (int) (touchX - (history.get(historyPointer).getPaint().getStrokeWidth() * 2)),
-                (int) (touchY - (history.get(historyPointer).getPaint().getStrokeWidth() * 2)),
-                (int) (touchX + (history.get(historyPointer).getPaint().getStrokeWidth() * 2)),
-                (int) (touchY + (history.get(historyPointer).getPaint().getStrokeWidth() * 2)));
+                (int) (touchX - (this.mPaint.getStrokeWidth() * 2)),
+                (int) (touchY - (this.mPaint.getStrokeWidth() * 2)),
+                (int) (touchX + (this.mPaint.getStrokeWidth() * 2)),
+                (int) (touchY + (this.mPaint.getStrokeWidth() * 2)));
         }
 
         /* call invalidate(Rect) to renew screen */
@@ -165,13 +146,18 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
     private void onActionDown(MotionEvent event){
         Log.d(TAG, "onActionDown called");
+
         switch (this.penMode){
             case PenMode.PEN:
                 addNewDrawInfo(event);
                 break;
+            case PenMode.ERASER:
+
+                break;
             default:
                 break;
         }
+
     }
 
     private void onActionMove(MotionEvent event){
@@ -180,37 +166,54 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
         switch(this.penMode){
             case PenMode.PEN:
                 for(int i = 0 ; i < event.getHistorySize(); i++){
+                    Log.d(TAG, "Historical event handling");
                     /* for missing touch event */
                     x = event.getHistoricalX(i);
                     y = event.getHistoricalY(i);
                     p = event.getHistoricalPressure(i);
-//                    this.mCanvas.drawPoint(x, y, this.mPaint);
-                    drawPath(x, y, p);
+                    ((DrawAction)this.history.get(curHistoryPtr)).addPoint(x, y, p);
                 }
-                drawPath(event);
+                ((DrawAction)this.history.get(curHistoryPtr)).addPoint(event.getX(), event.getY(), event.getPressure());
+                break;
+            case PenMode.ERASER:
+
                 break;
             default:
                 break;
         }
     }
 
+
     private void addNewDrawInfo(MotionEvent event){
-        DrawInfo dInfo = new DrawInfo(event, this.mPaint, this.mCanvas,this.penMode);
+        DrawAction dInfo = new DrawAction(event, this.mPaint, this.mCanvas,this.penMode);
         this.history.add(dInfo);
-        historyPointer += 1;
+        this.curHistoryPtr += 1;
+        this.lastHistoryPtr = this.curHistoryPtr;
     }
-
-    private void drawPath(MotionEvent event){
-        this.history.get(historyPointer).addPoint(event);
-    }
-
-    private void drawPath(float x, float y, float p){
-        this.history.get(historyPointer).addPoint(x, y, p);
-    }
-
 
     private void onActionUp(MotionEvent event){
 
+    }
+
+    public void undo(){
+        // clean up canvas, and re draw & invalidate
+        if(this.curHistoryPtr < 0){
+            Toast.makeText(getContext(), "Cannot undoable", Toast.LENGTH_SHORT).show();
+        }else{
+
+        }
+    }
+
+    public void redo(){
+        if(this.lastHistoryPtr > this.curHistoryPtr){
+            
+        }else{
+            Toast.makeText(getContext(), "Cannot redoable", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    public void penMode(int penMode){
+        this.penMode = penMode;
     }
 
 }

@@ -186,12 +186,12 @@ public class CanvasView2 extends View{
     }
 
     /**
-     * This method initialize Path.
-     * Namely, this method creates the instance of Path,
+     * This method initialize StrokePath.
+     * Namely, this method creates the instance of StrokePath,
      * and moves current position.
      *
      * @param event This is argument of onTouchEvent method
-     * @return path This is returned as the instance of Path
+     * @return path This is returned as the instance of StrokePath
      */
     private Path createPath(MotionEvent event) {
         Log.d(TAG,"createPath : " + event.getX() + ", " + event.getY());
@@ -207,10 +207,10 @@ public class CanvasView2 extends View{
     }
 
     /**
-     * This method updates the lists for the instance of Path and Paint.
+     * This method updates the lists for the instance of StrokePath and Paint.
      * "Undo" and "Redo" are enabled by this method.
      *
-     * @param path the instance of Path
+     * @param path the instance of StrokePath
      */
     private void updateHistory(Path path) {
         if (this.historyPointer == this.pathLists.size()) {
@@ -231,9 +231,9 @@ public class CanvasView2 extends View{
     }
 
     /**
-     * This method gets the instance of Path that pointer indicates.
+     * This method gets the instance of StrokePath that pointer indicates.
      *
-     * @return the instance of Path
+     * @return the instance of StrokePath
      */
     private Path getCurrentPath() {
         return this.pathLists.get(this.historyPointer - 1);
