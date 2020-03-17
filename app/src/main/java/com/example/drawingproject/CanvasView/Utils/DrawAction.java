@@ -25,7 +25,7 @@ public class DrawAction extends HistoricalAction{
 
     private float lastX, lastY;
 
-    public DrawAction(MotionEvent event, Paint paint, Canvas canvas, int penMode){
+    public DrawAction(float x, float y, float p, Paint paint, Canvas canvas, int penMode){
         this.isActivated = true;
 
         this.mCanvas = canvas;
@@ -34,10 +34,10 @@ public class DrawAction extends HistoricalAction{
         this.mPenMode = penMode;
 
         this.mPath = new StrokePath();
-        this.mPath.moveTo(event.getX(), event.getY());
+        this.mPath.moveTo(x, y);
 
-        this.lastX = event.getX();
-        this.lastY = event.getY();
+        this.lastX = x;
+        this.lastY = y;
     }
 
     public void addPoint(float x, float y, float p){

@@ -1,6 +1,7 @@
 package com.example.drawingproject.CanvasView;
 
 import android.content.Context;
+import android.gesture.Gesture;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -8,7 +9,9 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.GestureDetector;
 import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.FrameLayout;
@@ -32,9 +35,10 @@ import java.util.List;
 public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
     private static final String TAG = "CanvasView";
-    private static final float TOUCH_TOLERANCE = 4;
 
     private int penMode = PenMode.PEN;
+
+    private Context mContext;
 
     private Canvas mCanvas;
     private Paint mPaint;
@@ -45,6 +49,18 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
     private int curHistoryPtr = -1;
     private int lastHistoryPtr = -1;
 
+    private Rect mCanvasClipBounds;
+    private boolean mZoomEnabled = true;
+    private boolean isZooming = false;
+    private ScaleGestureDetector mScaleDetector;
+    private float mScaleFactor = 1.0f;
+    private float mScaleCenterX, mScaleCenterY;
+
+    private int mActivePointerID; // while handling multi touch, we should check PointerID to prevent strokes being smashed.
+    private boolean isMultiTouching = false;
+
+
+    private GestureDetector mGestureDetector;
 
     public CanvasView(Context context) {
         super(context);
@@ -71,6 +87,8 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
     private void initCanvasView(){
         this.setWillNotDraw(false);
 
+        this.mContext = getContext();
+
         setOnTouchListener(this);
 
         this.mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -84,6 +102,31 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
         this.mPaint.setShadowLayer(0f, 0F, 0F, Color.BLACK);
         this.mPaint.setAlpha(255);
         this.mPaint.setPathEffect(null);
+
+        this.mCanvasClipBounds = new Rect();
+
+        this.mScaleDetector = new ScaleGestureDetector(this.mContext, new ScaleGestureDetector.SimpleOnScaleGestureListener(){
+
+            @Override
+            public boolean onScale(ScaleGestureDetector detector) {
+                isZooming = true;
+                Log.d(TAG, "ScaleFactor : " + detector.getScaleFactor());
+                mScaleFactor *= detector.getScaleFactor();
+                mScaleCenterX = detector.getFocusX();
+                mScaleCenterY = detector.getFocusY();
+                invalidate();
+                return true;
+            }
+
+        });
+
+        this.mGestureDetector = new GestureDetector(this.mContext, new GestureDetector.SimpleOnGestureListener(){
+            @Override
+            public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+                if(isZooming) return false;
+                return super.onScroll(e1, e2, distanceX, distanceY);
+            }
+        });
 
         getViewTreeObserver().addOnGlobalLayoutListener(
                 new ViewTreeObserver.OnGlobalLayoutListener() {
@@ -104,10 +147,18 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
     }
 
+
+
     @Override
     protected void onDraw(Canvas canvas) {
+        canvas.save();
+        canvas.scale(mScaleFactor, mScaleFactor, mScaleCenterX, mScaleCenterY);
+
+        canvas.getClipBounds(mCanvasClipBounds);
 
         canvas.drawBitmap(this.mBitmap,0, 0, null);
+        canvas.restore();
+
 
         super.onDraw(canvas);
     }
@@ -115,41 +166,70 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
     @Override
     public boolean onTouch(View v, MotionEvent event) {
-        //this.mCanvas.drawPoint(event.getX(), event.getY(), this.mPaint);
-        switch(event.getAction()){
-            case MotionEvent.ACTION_MOVE:
-            case MotionEvent.ACTION_UP:
-                onActionMove(event);
-                break;
-            case MotionEvent.ACTION_DOWN:
-                onActionDown(event);
-                break;
-            default:
-                break;
+        mScaleDetector.onTouchEvent(event);
+//        mGestureDetector.onTouchEvent(event);
+        float x = event.getX() / mScaleFactor + mCanvasClipBounds.left;
+        float y = event.getY() / mScaleFactor + mCanvasClipBounds.top;
+
+        if(event.getPointerCount() == 1) {
+
+            float p = event.getPressure();
+
+            switch (event.getActionMasked()) {
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_MOVE:
+
+                    if(this.mActivePointerID == event.getPointerId(event.getActionIndex()) && !isMultiTouching) {
+
+                        for(int i = 0 ; i < event.getHistorySize() ; i++){
+
+                            float tx = event.getHistoricalX(i) / mScaleFactor + mCanvasClipBounds.left;
+                            float ty = event.getHistoricalY(i) / mScaleFactor + mCanvasClipBounds.top;
+                            float tp = event.getHistoricalPressure(i);
+
+                            onActionMove(tx, ty, tp);
+                        }
+                        onActionMove(x, y, p);
+                    }
+                    break;
+
+                case MotionEvent.ACTION_DOWN:
+
+                    this.mActivePointerID = event.getPointerId(0); // save first touch pointer
+                    this.isMultiTouching = false;
+                    onActionDown(x, y, p);
+                    break;
+
+                default:
+                    break;
+            }
+
+
+            if (history.size() > 0) {
+                mInvalidateRect = new Rect(
+                        (int) (x - (this.mPaint.getStrokeWidth() * 2)),
+                        (int) (y - (this.mPaint.getStrokeWidth() * 2)),
+                        (int) (x + (this.mPaint.getStrokeWidth() * 2)),
+                        (int) (y + (this.mPaint.getStrokeWidth() * 2)));
+            }
+
+            /* call invalidate(Rect) to renew screen */
+            this.invalidate(mInvalidateRect.left, mInvalidateRect.top, mInvalidateRect.right, mInvalidateRect.bottom);
+
         }
-
-        float touchX = event.getX();
-        float touchY = event.getY();
-
-        if(history.size() > 0){
-            mInvalidateRect = new Rect(
-                (int) (touchX - (this.mPaint.getStrokeWidth() * 2)),
-                (int) (touchY - (this.mPaint.getStrokeWidth() * 2)),
-                (int) (touchX + (this.mPaint.getStrokeWidth() * 2)),
-                (int) (touchY + (this.mPaint.getStrokeWidth() * 2)));
+        else{
+            //
+            this.isMultiTouching = true;
         }
-
-        /* call invalidate(Rect) to renew screen */
-        this.invalidate(mInvalidateRect.left, mInvalidateRect.top, mInvalidateRect.right, mInvalidateRect.bottom);
         return true;  /* return true for serial touch event */
     }
 
-    private void onActionDown(MotionEvent event){
+    private void onActionDown(float x, float y, float p){
         Log.d(TAG, "onActionDown called");
 
         switch (this.penMode){
             case PenMode.PEN:
-                addNewDrawInfo(event);
+                addNewDrawInfo(x, y, p);
                 break;
             case PenMode.ERASER:
 
@@ -160,20 +240,11 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
     }
 
-    private void onActionMove(MotionEvent event){
+    private void onActionMove(float x, float y, float p){
         Log.d(TAG, "onActionMove called");
-        float x, y, p;
         switch(this.penMode){
             case PenMode.PEN:
-                for(int i = 0 ; i < event.getHistorySize(); i++){
-                    Log.d(TAG, "Historical event handling");
-                    /* for missing touch event */
-                    x = event.getHistoricalX(i);
-                    y = event.getHistoricalY(i);
-                    p = event.getHistoricalPressure(i);
-                    ((DrawAction)this.history.get(curHistoryPtr)).addPoint(x, y, p);
-                }
-                ((DrawAction)this.history.get(curHistoryPtr)).addPoint(event.getX(), event.getY(), event.getPressure());
+                ((DrawAction)this.history.get(curHistoryPtr)).addPoint(x, y, p);
                 break;
             case PenMode.ERASER:
 
@@ -184,8 +255,8 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
     }
 
 
-    private void addNewDrawInfo(MotionEvent event){
-        DrawAction dInfo = new DrawAction(event, this.mPaint, this.mCanvas,this.penMode);
+    private void addNewDrawInfo(float x, float y, float p){
+        DrawAction dInfo = new DrawAction(x, y, p, this.mPaint, this.mCanvas,this.penMode);
         this.history.add(dInfo);
         this.curHistoryPtr += 1;
         this.lastHistoryPtr = this.curHistoryPtr;
