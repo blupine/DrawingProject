@@ -5,6 +5,7 @@ import android.gesture.Gesture;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.util.AttributeSet;
@@ -49,16 +50,14 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
     private int curHistoryPtr = -1;
     private int lastHistoryPtr = -1;
 
-    private Rect mCanvasClipBounds;
-    private boolean mZoomEnabled = true;
-    private boolean isZooming = false;
     private ScaleGestureDetector mScaleDetector;
-    private float mScaleFactor = 1.0f;
-    private float mScaleCenterX, mScaleCenterY;
 
     private int mActivePointerID; // while handling multi touch, we should check PointerID to prevent strokes being smashed.
     private boolean isMultiTouching = false;
 
+
+    private Matrix drawMatrix;
+    private float lastFocusX, lastFocusY;
 
     private GestureDetector mGestureDetector;
 
@@ -103,17 +102,35 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
         this.mPaint.setAlpha(255);
         this.mPaint.setPathEffect(null);
 
-        this.mCanvasClipBounds = new Rect();
+        this.drawMatrix = new Matrix();
 
         this.mScaleDetector = new ScaleGestureDetector(this.mContext, new ScaleGestureDetector.SimpleOnScaleGestureListener(){
+            @Override
+            public boolean onScaleBegin(ScaleGestureDetector detector) {
+                lastFocusX = detector.getFocusX();
+                lastFocusY = detector.getFocusY();
+                return super.onScaleBegin(detector);
+            }
 
             @Override
             public boolean onScale(ScaleGestureDetector detector) {
-                isZooming = true;
-                Log.d(TAG, "ScaleFactor : " + detector.getScaleFactor());
-                mScaleFactor *= detector.getScaleFactor();
-                mScaleCenterX = detector.getFocusX();
-                mScaleCenterY = detector.getFocusY();
+                Matrix transformationMatrix = new Matrix();
+                float focusX = detector.getFocusX();
+                float focusY = detector.getFocusY();
+                //Zoom focus is where the fingers are centered,
+                transformationMatrix.postTranslate(-focusX, -focusY);
+
+                transformationMatrix.postScale(detector.getScaleFactor(), detector.getScaleFactor());
+
+                /* Adding focus shift to allow for scrolling with two pointers down. Remove it to skip this functionality. This could be done in fewer lines, but for clarity I do it this way here */
+                //Edited after comment by chochim
+                float focusShiftX = focusX - lastFocusX;
+                float focusShiftY = focusY - lastFocusY;
+                transformationMatrix.postTranslate(focusX + focusShiftX, focusY + focusShiftY);
+
+                drawMatrix.postConcat(transformationMatrix);
+                lastFocusX = focusX;
+                lastFocusY = focusY;
                 invalidate();
                 return true;
             }
@@ -121,19 +138,22 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
         });
 
         this.mGestureDetector = new GestureDetector(this.mContext, new GestureDetector.SimpleOnGestureListener(){
+
             @Override
             public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-                if(isZooming) return false;
+                if(isMultiTouching) {
+                    drawMatrix.postTranslate(-distanceX, -distanceY);
+                    invalidate();
+                    return true;
+                }
                 return super.onScroll(e1, e2, distanceX, distanceY);
             }
         });
 
         getViewTreeObserver().addOnGlobalLayoutListener(
                 new ViewTreeObserver.OnGlobalLayoutListener() {
-
                     @Override
                     public void onGlobalLayout() {
-
                         getViewTreeObserver()
                                     .removeOnGlobalLayoutListener(this);
 
@@ -143,22 +163,11 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
                         init.recycle();
                     }
                 });
-
-
     }
-
-
 
     @Override
     protected void onDraw(Canvas canvas) {
-        canvas.save();
-        canvas.scale(mScaleFactor, mScaleFactor, mScaleCenterX, mScaleCenterY);
-
-        canvas.getClipBounds(mCanvasClipBounds);
-
-        canvas.drawBitmap(this.mBitmap,0, 0, null);
-        canvas.restore();
-
+        canvas.drawBitmap(this.mBitmap, drawMatrix, null);
 
         super.onDraw(canvas);
     }
@@ -166,12 +175,16 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
     @Override
     public boolean onTouch(View v, MotionEvent event) {
+//        Log.d(TAG, String.format(TAG, "ClipBound : (%f, %f)", mCanvasClipBounds.left, mCanvasClipBounds.top));
         mScaleDetector.onTouchEvent(event);
-//        mGestureDetector.onTouchEvent(event);
-        float x = event.getX() / mScaleFactor + mCanvasClipBounds.left;
-        float y = event.getY() / mScaleFactor + mCanvasClipBounds.top;
 
         if(event.getPointerCount() == 1) {
+            /* we should translated touch coordinate for translated & scaled canvas */
+            Matrix invertMatrix = new Matrix();
+            drawMatrix.invert(invertMatrix);
+
+            float[] translated_xy = {event.getX(), event.getY()};
+            invertMatrix.mapPoints(translated_xy);
 
             float p = event.getPressure();
 
@@ -182,14 +195,13 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
                     if(this.mActivePointerID == event.getPointerId(event.getActionIndex()) && !isMultiTouching) {
 
                         for(int i = 0 ; i < event.getHistorySize() ; i++){
+                            float[] hTranslated_xy = {event.getHistoricalX(i), event.getHistoricalY(i)};
+                            float pressure = event.getHistoricalPressure(i);
 
-                            float tx = event.getHistoricalX(i) / mScaleFactor + mCanvasClipBounds.left;
-                            float ty = event.getHistoricalY(i) / mScaleFactor + mCanvasClipBounds.top;
-                            float tp = event.getHistoricalPressure(i);
-
-                            onActionMove(tx, ty, tp);
+                            invertMatrix.mapPoints(hTranslated_xy);
+                            onActionMove(hTranslated_xy[0], hTranslated_xy[1], pressure);
                         }
-                        onActionMove(x, y, p);
+                        onActionMove(translated_xy[0], translated_xy[1], p);
                     }
                     break;
 
@@ -197,7 +209,7 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
                     this.mActivePointerID = event.getPointerId(0); // save first touch pointer
                     this.isMultiTouching = false;
-                    onActionDown(x, y, p);
+                    onActionDown(translated_xy[0], translated_xy[1], p);
                     break;
 
                 default:
@@ -207,10 +219,10 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
             if (history.size() > 0) {
                 mInvalidateRect = new Rect(
-                        (int) (x - (this.mPaint.getStrokeWidth() * 2)),
-                        (int) (y - (this.mPaint.getStrokeWidth() * 2)),
-                        (int) (x + (this.mPaint.getStrokeWidth() * 2)),
-                        (int) (y + (this.mPaint.getStrokeWidth() * 2)));
+                        (int) (translated_xy[0] - (this.mPaint.getStrokeWidth() * 2)),
+                        (int) (translated_xy[1] - (this.mPaint.getStrokeWidth() * 2)),
+                        (int) (translated_xy[0] + (this.mPaint.getStrokeWidth() * 2)),
+                        (int) (translated_xy[1] + (this.mPaint.getStrokeWidth() * 2)));
             }
 
             /* call invalidate(Rect) to renew screen */
@@ -218,7 +230,6 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
         }
         else{
-            //
             this.isMultiTouching = true;
         }
         return true;  /* return true for serial touch event */
