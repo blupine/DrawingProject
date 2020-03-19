@@ -115,40 +115,33 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
             @Override
             public boolean onScale(ScaleGestureDetector detector) {
+                final float scaleFactor = detector.getScaleFactor();
 
                 float[] values = new float[9];
                 drawMatrix.getValues(values);
-                Log.d(TAG, String.format("shiftXY -- (%f, %f) , %f",values[Matrix.MTRANS_X], values[Matrix.MTRANS_Y], detector.getScaleFactor()));
 
+                Log.d(TAG, String.format("shiftXY -- (%f, %f) , %f",values[Matrix.MTRANS_X], values[Matrix.MTRANS_Y], scaleFactor));
 
                 Matrix transformationMatrix = new Matrix();
                 float focusX = detector.getFocusX();
                 float focusY = detector.getFocusY();
-                //Zoom focus is where the fingers are centered,
 
+                /* after translated coordinate */
+                float afterX = values[Matrix.MTRANS_X] + (-1 * focusX * scaleFactor + focusX * 2 - lastFocusX);
+                float afterY = values[Matrix.MTRANS_Y] + (-1 * focusY * scaleFactor + focusY * 2 - lastFocusY);
 
-                if(values[Matrix.MTRANS_X] + (-1 * focusX * detector.getScaleFactor() + focusX * 2 - lastFocusX) < 0)
-                    transformationMatrix.postTranslate(-focusX, 0);
+                /* translation coordinate must be 0 if translated coordinate is larger than 0 : fixing top-left coordinate of canvas */
+                transformationMatrix.postTranslate(afterX < 0 ? -focusX : 0, afterY < 0 ? -focusY : 0);
 
-                if(values[Matrix.MTRANS_Y] + (-1 * focusY * detector.getScaleFactor() + focusY * 2 - lastFocusY) < 0)
-                    transformationMatrix.postTranslate(0, -focusY);
+                transformationMatrix.postScale(scaleFactor, scaleFactor);
 
-                transformationMatrix.postScale(detector.getScaleFactor(), detector.getScaleFactor());
-                mScaleFactor *= detector.getScaleFactor();
-                /* Adding focus shift to allow for scrolling with two pointers down. Remove it to skip this functionality. This could be done in fewer lines, but for clarity I do it this way here */
-                //Edited after comment by chochim
+                mScaleFactor *= scaleFactor;
+
                 float focusShiftX = focusX - lastFocusX;
                 float focusShiftY = focusY - lastFocusY;
 
-                if(values[Matrix.MTRANS_X] + (-1 * focusX * detector.getScaleFactor() + focusX * 2 - lastFocusX) < 0)
-                    transformationMatrix.postTranslate(focusX + focusShiftX, 0);
-
-                if(values[Matrix.MTRANS_Y] + (-1 * focusY * detector.getScaleFactor() + focusY * 2 - lastFocusY) < 0)
-                    transformationMatrix.postTranslate(0, focusY + focusShiftY);
-
-//                    transformationMatrix.postTranslate(focusX + focusShiftX, focusY + focusShiftY);
-
-
+                /* translation coordinate must be 0 if translated coordinate is larger than 0 : fixing top-left coordinate of canvas */
+                transformationMatrix.postTranslate(afterX < 0 ? focusX + focusShiftX : 0, afterY < 0 ? focusY + focusShiftY : 0);
 
                 drawMatrix.postConcat(transformationMatrix);
                 drawMatrix.getValues(values);
