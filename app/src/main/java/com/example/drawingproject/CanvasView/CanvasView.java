@@ -46,7 +46,7 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
     private Bitmap mBitmap;
     private Rect mInvalidateRect;
 
-    private List<HistoricalAction> history = new ArrayList<>();
+    private List<HistoricalAction> history = new ArrayList<HistoricalAction>();
     private int curHistoryPtr = -1;
     private int lastHistoryPtr = -1;
 
@@ -85,10 +85,10 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
     private void initCanvasView(){
         this.setWillNotDraw(false);
-        setOnTouchListener(this);
 
         this.mContext = getContext();
 
+        setOnTouchListener(this);
 
         this.mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         this.mPaint.setAntiAlias(true);
@@ -103,7 +103,52 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
         this.mPaint.setPathEffect(null);
 
         this.drawMatrix = new Matrix();
-        this.mScaleDetector = new ScaleGestureDetector(this.mContext, new ScaleGestureListener());
+
+        this.mScaleDetector = new ScaleGestureDetector(this.mContext, new ScaleGestureDetector.SimpleOnScaleGestureListener(){
+            @Override
+            public boolean onScaleBegin(ScaleGestureDetector detector) {
+                lastFocusX = detector.getFocusX();
+                lastFocusY = detector.getFocusY();
+                return super.onScaleBegin(detector);
+            }
+
+            @Override
+            public boolean onScale(ScaleGestureDetector detector) {
+                Matrix transformationMatrix = new Matrix();
+                float focusX = detector.getFocusX();
+                float focusY = detector.getFocusY();
+                //Zoom focus is where the fingers are centered,
+                transformationMatrix.postTranslate(-focusX, -focusY);
+
+                transformationMatrix.postScale(detector.getScaleFactor(), detector.getScaleFactor());
+
+                /* Adding focus shift to allow for scrolling with two pointers down. Remove it to skip this functionality. This could be done in fewer lines, but for clarity I do it this way here */
+                //Edited after comment by chochim
+                float focusShiftX = focusX - lastFocusX;
+                float focusShiftY = focusY - lastFocusY;
+                transformationMatrix.postTranslate(focusX + focusShiftX, focusY + focusShiftY);
+
+                drawMatrix.postConcat(transformationMatrix);
+                lastFocusX = focusX;
+                lastFocusY = focusY;
+                invalidate();
+                return true;
+            }
+
+        });
+
+        this.mGestureDetector = new GestureDetector(this.mContext, new GestureDetector.SimpleOnGestureListener(){
+
+            @Override
+            public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+                if(isMultiTouching) {
+                    drawMatrix.postTranslate(-distanceX, -distanceY);
+                    invalidate();
+                    return true;
+                }
+                return super.onScroll(e1, e2, distanceX, distanceY);
+            }
+        });
 
         getViewTreeObserver().addOnGlobalLayoutListener(
                 new ViewTreeObserver.OnGlobalLayoutListener() {
@@ -120,39 +165,6 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
                 });
     }
 
-    /* ScaleGestureListener for handling scaling and translating canvas */
-    private class ScaleGestureListener extends ScaleGestureDetector.SimpleOnScaleGestureListener{
-        @Override
-        public boolean onScaleBegin(ScaleGestureDetector detector) {
-            lastFocusX = detector.getFocusX();
-            lastFocusY = detector.getFocusY();
-            return super.onScaleBegin(detector);
-        }
-
-        @Override
-        public boolean onScale(ScaleGestureDetector detector) {
-            Log.d(TAG, String.format("onScale : (%f)", detector.getScaleFactor()));
-            Matrix transformationMatrix = new Matrix();
-
-            float focusX = detector.getFocusX();
-            float focusY = detector.getFocusY();
-
-            //Zoom focus is where the fingers are centered,
-            transformationMatrix.postTranslate(-focusX, -focusY);
-
-            float focusShiftX = focusX - lastFocusX;
-            float focusShiftY = focusY - lastFocusY;
-            transformationMatrix.postScale(detector.getScaleFactor(), detector.getScaleFactor());
-            transformationMatrix.postTranslate(focusX + focusShiftX, focusY + focusShiftY);
-
-            drawMatrix.postConcat(transformationMatrix);
-            lastFocusX = focusX;
-            lastFocusY = focusY;
-            invalidate();
-            return true;
-        }
-    }
-
     @Override
     protected void onDraw(Canvas canvas) {
         canvas.drawBitmap(this.mBitmap, drawMatrix, null);
@@ -163,10 +175,11 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
     @Override
     public boolean onTouch(View v, MotionEvent event) {
+//        Log.d(TAG, String.format(TAG, "ClipBound : (%f, %f)", mCanvasClipBounds.left, mCanvasClipBounds.top));
         mScaleDetector.onTouchEvent(event);
 
         if(event.getPointerCount() == 1) {
-            /* Mapping touch coordinate onto translated & scaled canvas matrix */
+            /* we should translated touch coordinate for translated & scaled canvas */
             Matrix invertMatrix = new Matrix();
             drawMatrix.invert(invertMatrix);
 
@@ -230,9 +243,6 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
                 addNewDrawInfo(x, y, p);
                 break;
             case PenMode.ERASER:
-                // 스트로크 지우개일 경우
-
-                // 일반 지우개일 경우
 
                 break;
             default:
@@ -272,13 +282,7 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
         if(this.curHistoryPtr < 0){
             Toast.makeText(getContext(), "Cannot undoable", Toast.LENGTH_SHORT).show();
         }else{
-            // canvas.clear();
 
-            // 마지막 히스토리가 지우개일 경우?
-                // 일반 지우개일 경우
-                    //
-                // 스트로크 지우개일 경우
-                    //
         }
     }
 
