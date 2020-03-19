@@ -42,12 +42,12 @@ public class DrawAction extends HistoricalAction{
 
     public void addPoint(float x, float y, float p){
 
-        this.mPath.quadTo((x + lastX)/2, (y + lastY)/2, x, y);
-//        this.mPath.lineTo(x, y);
+        //this.mPath.quadTo((x + lastX)/2, (y + lastY)/2, x, y);
+        this.mPath.lineTo(x, y);
 
-        this.mPath.setWidth(this.mPaint.getStrokeWidth() * p);
-
-        this.mPaint.setStrokeWidth(this.mPath.getWidth());
+        this.mPath.setWidth(strokeWidth * p);
+        this.mPaint.setStrokeWidth(strokeWidth * p);
+//        this.mPaint.setStrokeWidth(this.mPath.getWidth());
         this.mCanvas.drawPath(this.mPath, this.mPaint);
 
         this.mPaint.setStrokeWidth(strokeWidth);

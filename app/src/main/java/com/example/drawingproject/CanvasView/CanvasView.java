@@ -230,6 +230,9 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
                 addNewDrawInfo(x, y, p);
                 break;
             case PenMode.ERASER:
+                // 스트로크 지우개일 경우
+
+                // 일반 지우개일 경우
 
                 break;
             default:
@@ -269,12 +272,19 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
         if(this.curHistoryPtr < 0){
             Toast.makeText(getContext(), "Cannot undoable", Toast.LENGTH_SHORT).show();
         }else{
+            // canvas.clear();
+
+            // 마지막 히스토리가 지우개일 경우?
+                // 일반 지우개일 경우
+                    //
+                // 스트로크 지우개일 경우
+                    //
         }
     }
 
     public void redo(){
         if(this.lastHistoryPtr > this.curHistoryPtr){
-            
+
         }else{
             Toast.makeText(getContext(), "Cannot redoable", Toast.LENGTH_SHORT).show();
         }
