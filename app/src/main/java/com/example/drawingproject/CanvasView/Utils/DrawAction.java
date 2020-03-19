@@ -37,7 +37,7 @@ public class DrawAction extends HistoricalAction{
         this.mPath.moveTo(x, y);
 
         this.lastX = x;
-        this.lastY = y;
+        this.lastY =y;
     }
 
     public void addPoint(float x, float y, float p){
