@@ -57,8 +57,9 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
 
     private Matrix drawMatrix;
+    private float mScaleFactor = 1f;
     private float lastFocusX, lastFocusY;
-
+    private float startX = 0, startY = 0;
     private GestureDetector mGestureDetector;
 
     public CanvasView(Context context) {
@@ -114,21 +115,44 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
             @Override
             public boolean onScale(ScaleGestureDetector detector) {
+
+                float[] values = new float[9];
+                drawMatrix.getValues(values);
+                Log.d(TAG, String.format("shiftXY -- (%f, %f) , %f",values[Matrix.MTRANS_X], values[Matrix.MTRANS_Y], detector.getScaleFactor()));
+
+
                 Matrix transformationMatrix = new Matrix();
                 float focusX = detector.getFocusX();
                 float focusY = detector.getFocusY();
                 //Zoom focus is where the fingers are centered,
-                transformationMatrix.postTranslate(-focusX, -focusY);
+
+
+                if(values[Matrix.MTRANS_X] + (-1 * focusX * detector.getScaleFactor() + focusX * 2 - lastFocusX) < 0)
+                    transformationMatrix.postTranslate(-focusX, 0);
+
+                if(values[Matrix.MTRANS_Y] + (-1 * focusY * detector.getScaleFactor() + focusY * 2 - lastFocusY) < 0)
+                    transformationMatrix.postTranslate(0, -focusY);
 
                 transformationMatrix.postScale(detector.getScaleFactor(), detector.getScaleFactor());
-
+                mScaleFactor *= detector.getScaleFactor();
                 /* Adding focus shift to allow for scrolling with two pointers down. Remove it to skip this functionality. This could be done in fewer lines, but for clarity I do it this way here */
                 //Edited after comment by chochim
                 float focusShiftX = focusX - lastFocusX;
                 float focusShiftY = focusY - lastFocusY;
-                transformationMatrix.postTranslate(focusX + focusShiftX, focusY + focusShiftY);
+
+                if(values[Matrix.MTRANS_X] + (-1 * focusX * detector.getScaleFactor() + focusX * 2 - lastFocusX) < 0)
+                    transformationMatrix.postTranslate(focusX + focusShiftX, 0);
+
+                if(values[Matrix.MTRANS_Y] + (-1 * focusY * detector.getScaleFactor() + focusY * 2 - lastFocusY) < 0)
+                    transformationMatrix.postTranslate(0, focusY + focusShiftY);
+
+//                    transformationMatrix.postTranslate(focusX + focusShiftX, focusY + focusShiftY);
+
+
 
                 drawMatrix.postConcat(transformationMatrix);
+                drawMatrix.getValues(values);
+
                 lastFocusX = focusX;
                 lastFocusY = focusY;
                 invalidate();
@@ -160,6 +184,15 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
                         Bitmap init = Bitmap.createBitmap(getWidth(), getHeight(), Bitmap.Config.ARGB_8888);
                         mBitmap = init.copy(Bitmap.Config.ARGB_8888, true);
                         mCanvas = new Canvas(mBitmap);
+
+                        Paint rect_paint = new Paint();
+                        rect_paint.setStyle(Paint.Style.FILL);
+                        rect_paint.setColor(Color.BLACK);
+                        rect_paint.setAlpha(0x80); // optional
+
+                        mCanvas.drawRect(0, 0, mCanvas.getWidth(), mCanvas.getHeight(), rect_paint); // that's painting the whole canvas in the chosen color.
+                        mCanvas.drawARGB(0, 225, 225, 255);
+
                         init.recycle();
                     }
                 });
@@ -167,8 +200,9 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
     @Override
     protected void onDraw(Canvas canvas) {
+        canvas.save();
         canvas.drawBitmap(this.mBitmap, drawMatrix, null);
-
+        canvas.restore();
         super.onDraw(canvas);
     }
 
