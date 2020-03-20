@@ -23,6 +23,7 @@ public class CanvasActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_canvas);
         mCanvas = findViewById(R.id.canvas);
+
 //        mCanvas.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
 //        mDrawview = findViewById(R.id.canvas);
 //        mCameraView = findViewById(R.id.camera_view);

@@ -1,7 +1,6 @@
 package com.example.drawingproject.CanvasView;
 
 import android.content.Context;
-import android.gesture.Gesture;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -10,12 +9,12 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -23,6 +22,7 @@ import androidx.annotation.Nullable;
 import com.example.drawingproject.CanvasView.Utils.DrawAction;
 import com.example.drawingproject.CanvasView.Utils.HistoricalAction;
 import com.example.drawingproject.CanvasView.Utils.PenMode;
+import com.example.drawingproject.R;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +38,7 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
     private static final String TAG = "CanvasView";
 
     private int penMode = PenMode.PEN;
+    private int eraserSize = 50;
 
     private Context mContext;
 
@@ -46,7 +47,7 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
     private Bitmap mBitmap;
     private Rect mInvalidateRect;
 
-    private List<HistoricalAction> history = new ArrayList<HistoricalAction>();
+    private List<HistoricalAction> history = new ArrayList<>();
     private int curHistoryPtr = -1;
     private int lastHistoryPtr = -1;
 
@@ -55,12 +56,12 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
     private int mActivePointerID; // while handling multi touch, we should check PointerID to prevent strokes being smashed.
     private boolean isMultiTouching = false;
 
-
     private Matrix drawMatrix;
     private float mScaleFactor = 1f;
     private float lastFocusX, lastFocusY;
-    private float startX = 0, startY = 0;
-    private GestureDetector mGestureDetector;
+
+    private ImageView onEraserIcon;
+    FrameLayout.LayoutParams eraserLayout = new LayoutParams(eraserSize, eraserSize);
 
     public CanvasView(Context context) {
         super(context);
@@ -91,6 +92,13 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
         setOnTouchListener(this);
 
+        this.onEraserIcon = new ImageView(mContext);
+        this.onEraserIcon.setImageResource(R.drawable.ic_oneraser_black_24dp);
+        this.onEraserIcon.setLayoutParams(eraserLayout);
+        this.onEraserIcon.setVisibility(INVISIBLE);
+
+        this.addView(this.onEraserIcon);
+
         this.mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         this.mPaint.setAntiAlias(true);
         this.mPaint.setStyle(Paint.Style.STROKE);
@@ -104,7 +112,6 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
         this.mPaint.setPathEffect(null);
 
         this.drawMatrix = new Matrix();
-
         this.mScaleDetector = new ScaleGestureDetector(this.mContext, new ScaleGestureListener());
 
         getViewTreeObserver().addOnGlobalLayoutListener(
@@ -141,38 +148,41 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
         @Override
         public boolean onScale(ScaleGestureDetector detector) {
-            final float scaleFactor = detector.getScaleFactor();
+            if(isMultiTouching) {
+                final float scaleFactor = detector.getScaleFactor();
 
-            float[] values = new float[9];
-            drawMatrix.getValues(values);
+                float[] values = new float[9];
+                drawMatrix.getValues(values);
 
-            Matrix transformationMatrix = new Matrix();
-            float focusX = detector.getFocusX();
-            float focusY = detector.getFocusY();
+                Matrix transformationMatrix = new Matrix();
+                float focusX = detector.getFocusX();
+                float focusY = detector.getFocusY();
 
-            float focusShiftX = focusX - lastFocusX;
-            float focusShiftY = focusY - lastFocusY;
+                float focusShiftX = focusX - lastFocusX;
+                float focusShiftY = focusY - lastFocusY;
 
-            /* after translated coordinate */
-            float afterX = values[Matrix.MTRANS_X] + (-1 * focusX * scaleFactor + focusX + focusShiftX);
-            float afterY = values[Matrix.MTRANS_Y] + (-1 * focusY * scaleFactor + focusY + focusShiftY);
+                /* after translated coordinate */
+                float afterX = values[Matrix.MTRANS_X] + (-1 * focusX * scaleFactor + focusX + focusShiftX);
+                float afterY = values[Matrix.MTRANS_Y] + (-1 * focusY * scaleFactor + focusY + focusShiftY);
 
-            /* translation coordinate must be 0 if translated coordinate is larger than 0 : fixing top-left coordinate of canvas */
-            transformationMatrix.postTranslate(afterX < 0 ? -focusX : 0, afterY < 0 ? -focusY : 0);
+                /* translation coordinate must be 0 if translated coordinate is larger than 0 : fixing top-left coordinate of canvas */
+                transformationMatrix.postTranslate(afterX < 0 ? -focusX : 0, afterY < 0 ? -focusY : 0);
 
-            transformationMatrix.postScale(scaleFactor, scaleFactor);
+                transformationMatrix.postScale(scaleFactor, scaleFactor);
 
-            mScaleFactor *= scaleFactor;
+                mScaleFactor *= scaleFactor;
 
-            /* translation coordinate must be 0 if translated coordinate is larger than 0 : fixing top-left coordinate of canvas */
-            transformationMatrix.postTranslate(afterX < 0 ? focusX + focusShiftX : 0, afterY < 0 ? focusY + focusShiftY : 0);
+                /* translation coordinate must be 0 if translated coordinate is larger than 0 : fixing top-left coordinate of canvas */
+                transformationMatrix.postTranslate(afterX < 0 ? focusX + focusShiftX : 0, afterY < 0 ? focusY + focusShiftY : 0);
 
-            drawMatrix.postConcat(transformationMatrix);
+                drawMatrix.postConcat(transformationMatrix);
 
-            lastFocusX = focusX;
-            lastFocusY = focusY;
-            invalidate();
+                lastFocusX = focusX;
+                lastFocusY = focusY;
+                invalidate();
+            }
             return true;
+
         }
     }
 
@@ -200,6 +210,11 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
             switch (event.getActionMasked()) {
                 case MotionEvent.ACTION_UP:
+                    if(this.penMode == PenMode.ERASER){
+                        onEraserIcon.setVisibility(INVISIBLE);
+                        break;
+                    }
+                    // if pen mode is not eraser, same with ACTION_MOVE
                 case MotionEvent.ACTION_MOVE:
 
                     if(this.mActivePointerID == event.getPointerId(event.getActionIndex()) && !isMultiTouching) {
@@ -209,9 +224,18 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
                             float pressure = event.getHistoricalPressure(i);
 
                             invertMatrix.mapPoints(hTranslated_xy);
-                            onActionMove(hTranslated_xy[0], hTranslated_xy[1], pressure);
+                            if(penMode == PenMode.ERASER) {
+                                onEraserIcon.setX(event.getX() - eraserSize / 2);
+                                onEraserIcon.setY(event.getY() - eraserSize / 2);
+
+                            }
+                            else onActionMove(hTranslated_xy[0], hTranslated_xy[1], pressure);
                         }
-                        onActionMove(translated_xy[0], translated_xy[1], p);
+                        if(penMode == PenMode.ERASER) {
+                            onEraserIcon.setX(event.getX() - eraserSize / 2);
+                            onEraserIcon.setY(event.getY() - eraserSize / 2);
+                        }
+                        else onActionMove(translated_xy[0], translated_xy[1], p);
                     }
                     break;
 
@@ -219,6 +243,13 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
                     this.mActivePointerID = event.getPointerId(0); // save first touch pointer
                     this.isMultiTouching = false;
+                    if(this.penMode == PenMode.ERASER){
+                        onEraserIcon.setX(event.getX() - eraserSize / 2);
+                        onEraserIcon.setY(event.getY() - eraserSize / 2);
+
+                        onEraserIcon.setVisibility(VISIBLE);
+                        break;
+                    }
                     onActionDown(translated_xy[0], translated_xy[1], p);
                     break;
 
@@ -233,10 +264,11 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
                         (int) (translated_xy[1] - (this.mPaint.getStrokeWidth() * 2)),
                         (int) (translated_xy[0] + (this.mPaint.getStrokeWidth() * 2)),
                         (int) (translated_xy[1] + (this.mPaint.getStrokeWidth() * 2)));
+                /* call invalidate(Rect) to renew screen */
+                this.invalidate(mInvalidateRect.left, mInvalidateRect.top, mInvalidateRect.right, mInvalidateRect.bottom);
+            }else{
+                invalidate();
             }
-
-            /* call invalidate(Rect) to renew screen */
-            this.invalidate(mInvalidateRect.left, mInvalidateRect.top, mInvalidateRect.right, mInvalidateRect.bottom);
 
         }
         else{
@@ -268,7 +300,6 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
                 ((DrawAction)this.history.get(curHistoryPtr)).addPoint(x, y, p);
                 break;
             case PenMode.ERASER:
-
                 break;
             default:
                 break;
