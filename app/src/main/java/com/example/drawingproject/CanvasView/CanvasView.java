@@ -105,74 +105,14 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
         this.drawMatrix = new Matrix();
 
-        this.mScaleDetector = new ScaleGestureDetector(this.mContext, new ScaleGestureDetector.SimpleOnScaleGestureListener(){
-            @Override
-            public boolean onScaleBegin(ScaleGestureDetector detector) {
-                lastFocusX = detector.getFocusX();
-                lastFocusY = detector.getFocusY();
-                return super.onScaleBegin(detector);
-            }
-
-            @Override
-            public boolean onScale(ScaleGestureDetector detector) {
-                final float scaleFactor = detector.getScaleFactor();
-
-                float[] values = new float[9];
-                drawMatrix.getValues(values);
-
-                Log.d(TAG, String.format("shiftXY -- (%f, %f) , %f",values[Matrix.MTRANS_X], values[Matrix.MTRANS_Y], scaleFactor));
-
-                Matrix transformationMatrix = new Matrix();
-                float focusX = detector.getFocusX();
-                float focusY = detector.getFocusY();
-
-                /* after translated coordinate */
-                float afterX = values[Matrix.MTRANS_X] + (-1 * focusX * scaleFactor + focusX * 2 - lastFocusX);
-                float afterY = values[Matrix.MTRANS_Y] + (-1 * focusY * scaleFactor + focusY * 2 - lastFocusY);
-
-                /* translation coordinate must be 0 if translated coordinate is larger than 0 : fixing top-left coordinate of canvas */
-                transformationMatrix.postTranslate(afterX < 0 ? -focusX : 0, afterY < 0 ? -focusY : 0);
-
-                transformationMatrix.postScale(scaleFactor, scaleFactor);
-
-                mScaleFactor *= scaleFactor;
-
-                float focusShiftX = focusX - lastFocusX;
-                float focusShiftY = focusY - lastFocusY;
-
-                /* translation coordinate must be 0 if translated coordinate is larger than 0 : fixing top-left coordinate of canvas */
-                transformationMatrix.postTranslate(afterX < 0 ? focusX + focusShiftX : 0, afterY < 0 ? focusY + focusShiftY : 0);
-
-                drawMatrix.postConcat(transformationMatrix);
-                drawMatrix.getValues(values);
-
-                lastFocusX = focusX;
-                lastFocusY = focusY;
-                invalidate();
-                return true;
-            }
-
-        });
-
-        this.mGestureDetector = new GestureDetector(this.mContext, new GestureDetector.SimpleOnGestureListener(){
-
-            @Override
-            public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-                if(isMultiTouching) {
-                    drawMatrix.postTranslate(-distanceX, -distanceY);
-                    invalidate();
-                    return true;
-                }
-                return super.onScroll(e1, e2, distanceX, distanceY);
-            }
-        });
+        this.mScaleDetector = new ScaleGestureDetector(this.mContext, new ScaleGestureListener());
 
         getViewTreeObserver().addOnGlobalLayoutListener(
                 new ViewTreeObserver.OnGlobalLayoutListener() {
                     @Override
                     public void onGlobalLayout() {
                         getViewTreeObserver()
-                                    .removeOnGlobalLayoutListener(this);
+                                .removeOnGlobalLayoutListener(this);
 
                         Bitmap init = Bitmap.createBitmap(getWidth(), getHeight(), Bitmap.Config.ARGB_8888);
                         mBitmap = init.copy(Bitmap.Config.ARGB_8888, true);
@@ -191,6 +131,51 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
                 });
     }
 
+    private class ScaleGestureListener extends ScaleGestureDetector.SimpleOnScaleGestureListener{
+        @Override
+        public boolean onScaleBegin(ScaleGestureDetector detector) {
+            lastFocusX = detector.getFocusX();
+            lastFocusY = detector.getFocusY();
+            return super.onScaleBegin(detector);
+        }
+
+        @Override
+        public boolean onScale(ScaleGestureDetector detector) {
+            final float scaleFactor = detector.getScaleFactor();
+
+            float[] values = new float[9];
+            drawMatrix.getValues(values);
+
+            Matrix transformationMatrix = new Matrix();
+            float focusX = detector.getFocusX();
+            float focusY = detector.getFocusY();
+
+            float focusShiftX = focusX - lastFocusX;
+            float focusShiftY = focusY - lastFocusY;
+
+            /* after translated coordinate */
+            float afterX = values[Matrix.MTRANS_X] + (-1 * focusX * scaleFactor + focusX + focusShiftX);
+            float afterY = values[Matrix.MTRANS_Y] + (-1 * focusY * scaleFactor + focusY + focusShiftY);
+
+            /* translation coordinate must be 0 if translated coordinate is larger than 0 : fixing top-left coordinate of canvas */
+            transformationMatrix.postTranslate(afterX < 0 ? -focusX : 0, afterY < 0 ? -focusY : 0);
+
+            transformationMatrix.postScale(scaleFactor, scaleFactor);
+
+            mScaleFactor *= scaleFactor;
+
+            /* translation coordinate must be 0 if translated coordinate is larger than 0 : fixing top-left coordinate of canvas */
+            transformationMatrix.postTranslate(afterX < 0 ? focusX + focusShiftX : 0, afterY < 0 ? focusY + focusShiftY : 0);
+
+            drawMatrix.postConcat(transformationMatrix);
+
+            lastFocusX = focusX;
+            lastFocusY = focusY;
+            invalidate();
+            return true;
+        }
+    }
+
     @Override
     protected void onDraw(Canvas canvas) {
         canvas.save();
@@ -199,10 +184,8 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
         super.onDraw(canvas);
     }
 
-
     @Override
     public boolean onTouch(View v, MotionEvent event) {
-//        Log.d(TAG, String.format(TAG, "ClipBound : (%f, %f)", mCanvasClipBounds.left, mCanvasClipBounds.top));
         mScaleDetector.onTouchEvent(event);
 
         if(event.getPointerCount() == 1) {
