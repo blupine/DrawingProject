@@ -22,6 +22,7 @@ import androidx.annotation.Nullable;
 import com.example.drawingproject.CanvasView.Utils.DrawAction;
 import com.example.drawingproject.CanvasView.Utils.HistoricalAction;
 import com.example.drawingproject.CanvasView.Utils.PenMode;
+import com.example.drawingproject.CanvasView.Utils.StrokePath;
 import com.example.drawingproject.R;
 
 import java.util.ArrayList;
@@ -44,6 +45,7 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
     private Canvas mCanvas;
     private Paint mPaint;
+    private Paint erasePaint;
     private Bitmap mBitmap;
     private Rect mInvalidateRect;
 
@@ -198,7 +200,7 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
     public boolean onTouch(View v, MotionEvent event) {
         mScaleDetector.onTouchEvent(event);
 
-        if(event.getPointerCount() == 1) {
+        if (event.getPointerCount() == 1) {
             /* we should translated touch coordinate for translated & scaled canvas */
             Matrix invertMatrix = new Matrix();
             drawMatrix.invert(invertMatrix);
@@ -210,32 +212,37 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
             switch (event.getActionMasked()) {
                 case MotionEvent.ACTION_UP:
-                    if(this.penMode == PenMode.ERASER){
+                    if (this.penMode == PenMode.ERASER) {
                         onEraserIcon.setVisibility(INVISIBLE);
                         break;
                     }
                     // if pen mode is not eraser, same with ACTION_MOVE
                 case MotionEvent.ACTION_MOVE:
 
-                    if(this.mActivePointerID == event.getPointerId(event.getActionIndex()) && !isMultiTouching) {
+                    if (this.mActivePointerID == event.getPointerId(event.getActionIndex()) && !isMultiTouching) {
 
-                        for(int i = 0 ; i < event.getHistorySize() ; i++){
+                        for (int i = 0; i < event.getHistorySize(); i++) {
                             float[] hTranslated_xy = {event.getHistoricalX(i), event.getHistoricalY(i)};
                             float pressure = event.getHistoricalPressure(i);
 
                             invertMatrix.mapPoints(hTranslated_xy);
-                            if(penMode == PenMode.ERASER) {
-                                onEraserIcon.setX(event.getX() - eraserSize / 2);
-                                onEraserIcon.setY(event.getY() - eraserSize / 2);
+                            if (penMode == PenMode.ERASER) {
+                                onEraserIcon.setX(event.getHistoricalX(i) - eraserSize / 2f);
+                                onEraserIcon.setY(event.getHistoricalY(i) - eraserSize / 2f);
 
+                            } else {
+                                ((DrawAction) this.history.get(curHistoryPtr)).addPoint(hTranslated_xy[0], hTranslated_xy[1], pressure);
                             }
-                            else onActionMove(hTranslated_xy[0], hTranslated_xy[1], pressure);
                         }
-                        if(penMode == PenMode.ERASER) {
-                            onEraserIcon.setX(event.getX() - eraserSize / 2);
-                            onEraserIcon.setY(event.getY() - eraserSize / 2);
+
+                        if (penMode == PenMode.ERASER) {
+                            onEraserIcon.setX(event.getX() - eraserSize / 2f);
+                            onEraserIcon.setY(event.getY() - eraserSize / 2f);
+                        } else {
+                            ((DrawAction) this.history.get(curHistoryPtr)).addPoint(translated_xy[0], translated_xy[1], p);
+
+                            //onActionMove(translated_xy[0], translated_xy[1], p);
                         }
-                        else onActionMove(translated_xy[0], translated_xy[1], p);
                     }
                     break;
 
@@ -243,20 +250,20 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
                     this.mActivePointerID = event.getPointerId(0); // save first touch pointer
                     this.isMultiTouching = false;
-                    if(this.penMode == PenMode.ERASER){
-                        onEraserIcon.setX(event.getX() - eraserSize / 2);
-                        onEraserIcon.setY(event.getY() - eraserSize / 2);
+                    if (this.penMode == PenMode.ERASER) {
+                        onEraserIcon.setX(event.getX() - eraserSize / 2f);
+                        onEraserIcon.setY(event.getY() - eraserSize / 2f);
 
                         onEraserIcon.setVisibility(VISIBLE);
                         break;
                     }
-                    onActionDown(translated_xy[0], translated_xy[1], p);
+                    addNewDrawInfo(translated_xy[0], translated_xy[1], p);
+//                    onActionDown(translated_xy[0], translated_xy[1], p);
                     break;
 
                 default:
                     break;
             }
-
 
             if (history.size() > 0) {
                 mInvalidateRect = new Rect(
@@ -266,56 +273,24 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
                         (int) (translated_xy[1] + (this.mPaint.getStrokeWidth() * 2)));
                 /* call invalidate(Rect) to renew screen */
                 this.invalidate(mInvalidateRect.left, mInvalidateRect.top, mInvalidateRect.right, mInvalidateRect.bottom);
-            }else{
+            } else {
                 invalidate();
             }
-
-        }
-        else{
+        } else {
             this.isMultiTouching = true;
         }
         return true;  /* return true for serial touch event */
     }
 
-    private void onActionDown(float x, float y, float p){
-        Log.d(TAG, "onActionDown called");
-
-        switch (this.penMode){
-            case PenMode.PEN:
-                addNewDrawInfo(x, y, p);
-                break;
-            case PenMode.ERASER:
-
-                break;
-            default:
-                break;
-        }
-
-    }
-
-    private void onActionMove(float x, float y, float p){
-        Log.d(TAG, "onActionMove called");
-        switch(this.penMode){
-            case PenMode.PEN:
-                ((DrawAction)this.history.get(curHistoryPtr)).addPoint(x, y, p);
-                break;
-            case PenMode.ERASER:
-                break;
-            default:
-                break;
-        }
-    }
-
-
     private void addNewDrawInfo(float x, float y, float p){
         DrawAction dInfo = new DrawAction(x, y, p, this.mPaint, this.mCanvas,this.penMode);
+        if(curHistoryPtr >= -1 && this.curHistoryPtr < this.history.size() - 1){
+
+            this.history = this.history.subList(0, this.curHistoryPtr + 1);
+        }
         this.history.add(dInfo);
         this.curHistoryPtr += 1;
         this.lastHistoryPtr = this.curHistoryPtr;
-    }
-
-    private void onActionUp(MotionEvent event){
-
     }
 
     public void undo(){
@@ -323,16 +298,35 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
         if(this.curHistoryPtr < 0){
             Toast.makeText(getContext(), "Cannot undoable", Toast.LENGTH_SHORT).show();
         }else{
+            Log.d(TAG, "undo called : historyPtr ? : " + curHistoryPtr);
 
+            this.mBitmap.eraseColor(Color.TRANSPARENT);
+            for(int i = 0 ; i < curHistoryPtr ; i++){
+                ((DrawAction)history.get(i)).redraw();
+            }
+
+            this.curHistoryPtr--;
+            invalidate();
         }
     }
 
     public void redo(){
-        if(this.lastHistoryPtr > this.curHistoryPtr){
-
-        }else{
+        if(curHistoryPtr < history.size() - 1){
+            curHistoryPtr++;
+            this.mBitmap.eraseColor(Color.TRANSPARENT);
+            for(int i = 0 ; i < curHistoryPtr + 1 ; i++){
+                ((DrawAction)history.get(i)).redraw();
+            }
+            invalidate();
+        }
+        else{
             Toast.makeText(getContext(), "Cannot redoable", Toast.LENGTH_SHORT).show();
         }
+//        if(this.lastHistoryPtr > this.curHistoryPtr){
+//
+//        }else{
+//            Toast.makeText(getContext(), "Cannot redoable", Toast.LENGTH_SHORT).show();
+//        }
     }
 
     public void penMode(int penMode){

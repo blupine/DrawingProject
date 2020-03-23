@@ -42,8 +42,8 @@ public class DrawAction extends HistoricalAction{
 
     public void addPoint(float x, float y, float p){
 
-        //this.mPath.quadTo((x + lastX)/2, (y + lastY)/2, x, y);
-        this.mPath.lineTo(x, y);
+        this.mPath.quadTo((x + lastX)/2, (y + lastY)/2, x, y);
+//        this.mPath.lineTo(x, y);
 
         this.mPath.setWidth(strokeWidth * p);
         this.mPaint.setStrokeWidth(strokeWidth * p);
@@ -62,8 +62,15 @@ public class DrawAction extends HistoricalAction{
         this.mPath.moveTo(lastX, lastY);
     }
 
-    public Path getPath(){return this.mPath;}
+    public void redraw() {
+        for(StrokePath path : this.mPaths){
+            this.mPaint.setStrokeWidth(path.getWidth());
+            this.mCanvas.drawPath(path, this.mPaint);
+        }
+    }
 
+    public List<StrokePath> getPathList(){return this.mPaths;}
+    public Paint getPaint(){return this.mPaint;}
     public boolean isActivated(){return this.isActivated;}
 
 }

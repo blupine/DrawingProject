@@ -14,5 +14,4 @@ public class HistoricalAction {
         this.isOriginalAction = true;
         this.isActivated = true;
     }
-
 }

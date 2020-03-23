@@ -540,7 +540,6 @@ public class DrawView extends FrameLayout implements View.OnTouchListener {
             mContentBitmap = init.copy(Bitmap.Config.ARGB_8888, true);
             init.recycle();
             mContentCanvas = new Canvas(mContentBitmap);
-
             FrameLayout.LayoutParams layoutParams = new LayoutParams(getWidth() / 4, getHeight() / 4,
                     Gravity.TOP | Gravity.END);
             layoutParams.setMargins(12, 12, 12, 12);
