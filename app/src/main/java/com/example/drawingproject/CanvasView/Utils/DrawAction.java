@@ -13,17 +13,17 @@ import java.util.List;
 public class DrawAction extends HistoricalAction{
     private static final String TAG = "DrawAction";
 
-    private Canvas mCanvas;
+    Canvas mCanvas;
     private int mPenMode;
     // private BackgroundIMG bgImg;
 
-    private List<StrokePath> mPaths = new ArrayList<>();
-    private StrokePath mPath;
+    List<StrokePath> mPaths = new ArrayList<>();
+    StrokePath mPath;
 
-    private Paint mPaint;
-    private float strokeWidth;
+    Paint mPaint;
+    float strokeWidth;
 
-    private float lastX, lastY;
+    float lastX, lastY;
 
     public DrawAction(float x, float y, float p, Paint paint, Canvas canvas, int penMode){
         this.isActivated = true;

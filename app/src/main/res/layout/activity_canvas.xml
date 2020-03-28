@@ -1,58 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     tools:context=".CanvasActivity">
-
-
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
-
-
 
         <com.example.drawingproject.CanvasView.CanvasView
             android:id="@+id/canvas"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent" />
 
-        </com.example.drawingproject.CanvasView.CanvasView>
+        <!--        <com.example.drawingproject.drawview.views.DrawView-->
+        <!--            android:id="@+id/canvas"-->
+        <!--            android:layout_width="match_parent"-->
+        <!--            android:layout_height="match_parent"-->
+        <!--            app:dv_draw_alpha="255"-->
+        <!--            app:dv_draw_anti_alias="true"-->
+        <!--            app:dv_draw_color="@color/colorAccent"-->
+        <!--            app:dv_draw_corners="round"-->
+        <!--            app:dv_draw_dither="true"-->
+        <!--            app:dv_draw_enable_zoom="true"-->
+        <!--            app:dv_draw_font_family="default_font"-->
+        <!--            app:dv_draw_font_size="12"-->
+        <!--            app:dv_draw_max_zoom_factor="8"-->
+        <!--            app:dv_draw_mode="draw"-->
+        <!--            app:dv_draw_style="stroke"-->
+        <!--            app:dv_draw_tool="pen"-->
+        <!--            app:dv_draw_width="4"-->
+        <!--            app:dv_draw_zoomregion_maxscale="5"-->
+        <!--            app:dv_draw_zoomregion_minscale="2"-->
+        <!--            app:dv_draw_zoomregion_scale="4" />-->
 
-<!--        <com.example.drawingproject.drawview.views.DrawView-->
-<!--            android:id="@+id/canvas"-->
-<!--            android:layout_width="match_parent"-->
-<!--            android:layout_height="match_parent"-->
-<!--            app:dv_draw_alpha="255"-->
-<!--            app:dv_draw_anti_alias="true"-->
-<!--            app:dv_draw_color="@color/colorAccent"-->
-<!--            app:dv_draw_corners="round"-->
-<!--            app:dv_draw_dither="true"-->
-<!--            app:dv_draw_enable_zoom="true"-->
-<!--            app:dv_draw_font_family="default_font"-->
-<!--            app:dv_draw_font_size="12"-->
-<!--            app:dv_draw_max_zoom_factor="8"-->
-<!--            app:dv_draw_mode="draw"-->
-<!--            app:dv_draw_style="stroke"-->
-<!--            app:dv_draw_tool="pen"-->
-<!--            app:dv_draw_width="4"-->
-<!--            app:dv_draw_zoomregion_maxscale="5"-->
-<!--            app:dv_draw_zoomregion_minscale="2"-->
-<!--            app:dv_draw_zoomregion_scale="4" />-->
+        <!--        <com.example.drawingproject.drawview.views.DrawCameraView-->
+        <!--            android:id="@+id/camera_view"-->
+        <!--            android:layout_width="match_parent"-->
+        <!--            android:layout_height="match_parent"/>-->
 
-    </FrameLayout>
-
-    <!--        <com.example.drawingproject.drawview.views.DrawCameraView-->
-<!--            android:id="@+id/camera_view"-->
-<!--            android:layout_width="match_parent"-->
-<!--            android:layout_height="match_parent"/>-->
-
-<!--        <com.example.drawingproject.CanvasView.CanvasView2-->
-<!--            android:id="@+id/canvas"-->
-<!--            android:layout_width="match_parent"-->
-<!--            android:layout_height="match_parent"-->
-<!--            android:layout_gravity="center_horizontal" />-->
-</LinearLayout>
+        <!--        <com.example.drawingproject.CanvasView.CanvasView2-->
+        <!--            android:id="@+id/canvas"-->
+        <!--            android:layout_width="match_parent"-->
+        <!--            android:layout_height="match_parent"-->
+        <!--            android:layout_gravity="center_horizontal" />-->
+</FrameLayout>

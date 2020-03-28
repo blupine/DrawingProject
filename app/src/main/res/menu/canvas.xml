@@ -28,6 +28,12 @@
         android:title="pen"
         app:showAsAction="ifRoom" />
 
+    <item
+        android:id="@+id/colorpicker"
+        android:icon="@drawable/ic_color_black_24dp"
+        android:orderInCategory="104"
+        android:title="colorpicker"
+        app:showAsAction="ifRoom" />
 
 
 </menu>

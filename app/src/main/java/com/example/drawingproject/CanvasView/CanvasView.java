@@ -6,6 +6,8 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -20,6 +22,7 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 
 import com.example.drawingproject.CanvasView.Utils.DrawAction;
+import com.example.drawingproject.CanvasView.Utils.EraseAction;
 import com.example.drawingproject.CanvasView.Utils.HistoricalAction;
 import com.example.drawingproject.CanvasView.Utils.PenMode;
 import com.example.drawingproject.CanvasView.Utils.StrokePath;
@@ -40,18 +43,19 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
     private int penMode = PenMode.PEN;
     private int eraserSize = 50;
+    private float penSize = 3f;
 
     private Context mContext;
 
     private Canvas mCanvas;
     private Paint mPaint;
+    private Paint mBackupPaint;
     private Paint erasePaint;
     private Bitmap mBitmap;
     private Rect mInvalidateRect;
 
     private List<HistoricalAction> history = new ArrayList<>();
     private int curHistoryPtr = -1;
-    private int lastHistoryPtr = -1;
 
     private ScaleGestureDetector mScaleDetector;
 
@@ -229,6 +233,7 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
                             if (penMode == PenMode.ERASER) {
                                 onEraserIcon.setX(event.getHistoricalX(i) - eraserSize / 2f);
                                 onEraserIcon.setY(event.getHistoricalY(i) - eraserSize / 2f);
+                                ((EraseAction) this.history.get(curHistoryPtr)).addPoint(hTranslated_xy[0], hTranslated_xy[1], pressure);
 
                             } else {
                                 ((DrawAction) this.history.get(curHistoryPtr)).addPoint(hTranslated_xy[0], hTranslated_xy[1], pressure);
@@ -238,9 +243,11 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
                         if (penMode == PenMode.ERASER) {
                             onEraserIcon.setX(event.getX() - eraserSize / 2f);
                             onEraserIcon.setY(event.getY() - eraserSize / 2f);
-                        } else {
-                            ((DrawAction) this.history.get(curHistoryPtr)).addPoint(translated_xy[0], translated_xy[1], p);
+                            ((EraseAction) this.history.get(curHistoryPtr)).addPoint(translated_xy[0], translated_xy[1], p);
 
+                        }
+                         else {
+                            ((DrawAction) this.history.get(curHistoryPtr)).addPoint(translated_xy[0], translated_xy[1], p);
                             //onActionMove(translated_xy[0], translated_xy[1], p);
                         }
                     }
@@ -253,14 +260,12 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
                     if (this.penMode == PenMode.ERASER) {
                         onEraserIcon.setX(event.getX() - eraserSize / 2f);
                         onEraserIcon.setY(event.getY() - eraserSize / 2f);
-
                         onEraserIcon.setVisibility(VISIBLE);
+                        addNewEraseInfo(translated_xy[0], translated_xy[1], p);
                         break;
                     }
                     addNewDrawInfo(translated_xy[0], translated_xy[1], p);
-//                    onActionDown(translated_xy[0], translated_xy[1], p);
                     break;
-
                 default:
                     break;
             }
@@ -282,6 +287,15 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
         return true;  /* return true for serial touch event */
     }
 
+    private void addNewEraseInfo(float x, float y, float p){
+        EraseAction eInfo = new EraseAction(x, y, p, this.mPaint, this.mCanvas, this.penMode);
+        if(curHistoryPtr >= -1 && this.curHistoryPtr < this.history.size() - 1){
+            this.history = this.history.subList(0, this.curHistoryPtr + 1);
+        }
+        this.history.add(eInfo);
+        this.curHistoryPtr += 1;
+    }
+
     private void addNewDrawInfo(float x, float y, float p){
         DrawAction dInfo = new DrawAction(x, y, p, this.mPaint, this.mCanvas,this.penMode);
         if(curHistoryPtr >= -1 && this.curHistoryPtr < this.history.size() - 1){
@@ -290,7 +304,6 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
         }
         this.history.add(dInfo);
         this.curHistoryPtr += 1;
-        this.lastHistoryPtr = this.curHistoryPtr;
     }
 
     public void undo(){
@@ -304,7 +317,6 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
             for(int i = 0 ; i < curHistoryPtr ; i++){
                 ((DrawAction)history.get(i)).redraw();
             }
-
             this.curHistoryPtr--;
             invalidate();
         }
@@ -329,8 +341,22 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 //        }
     }
 
-    public void penMode(int penMode){
+    public void setPenMode(int penMode) {
         this.penMode = penMode;
-    }
+        switch (penMode) {
+            case PenMode.ERASER:
+                this.mPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
+                this.mPaint.setStrokeWidth((float)this.eraserSize);
+                break;
+            case PenMode.PEN:
+                Log.d(TAG, "Pen mode to PEN");
+//                mPaint = new Paint(mBackupPaint);
+                this.mPaint.setXfermode(null);
+                this.mPaint.setStrokeWidth(this.penSize);
 
+                break;
+            default:
+                break;
+        }
+    }
 }

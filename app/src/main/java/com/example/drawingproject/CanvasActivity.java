@@ -11,6 +11,7 @@ import com.example.drawingproject.CanvasView.CanvasView2;
 import com.example.drawingproject.CanvasView.Utils.PenMode;
 import com.example.drawingproject.drawview.views.DrawCameraView;
 import com.example.drawingproject.drawview.views.DrawView;
+import com.jaredrummler.android.colorpicker.ColorPickerDialog;
 
 public class CanvasActivity extends AppCompatActivity {
 
@@ -51,11 +52,13 @@ public class CanvasActivity extends AppCompatActivity {
                 mCanvas.undo();
                 return true;
             case R.id.pen:
-                mCanvas.penMode(PenMode.PEN);
+                mCanvas.setPenMode(PenMode.PEN);
                 return true;
             case R.id.eraser:
-                mCanvas.penMode(PenMode.ERASER);
+                mCanvas.setPenMode(PenMode.ERASER);
                 return true;
+            case R.id.colorpicker:
+                ColorPickerDialog.newBuilder().show(this);
             default:
                 return super.onOptionsItemSelected(item);
         }
