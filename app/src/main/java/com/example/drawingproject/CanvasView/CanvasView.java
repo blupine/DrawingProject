@@ -17,6 +17,8 @@ import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -26,6 +28,7 @@ import com.example.drawingproject.CanvasView.Utils.EraseAction;
 import com.example.drawingproject.CanvasView.Utils.HistoricalAction;
 import com.example.drawingproject.CanvasView.Utils.PenMode;
 import com.example.drawingproject.CanvasView.Utils.StrokePath;
+import com.example.drawingproject.CanvasView.Utils.TestTextView;
 import com.example.drawingproject.R;
 
 import java.util.ArrayList;
@@ -42,16 +45,17 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
     private static final String TAG = "CanvasView";
 
     private int penMode = PenMode.PEN;
-    private int eraserSize = 50;
     private float penSize = 3f;
 
     private Context mContext;
 
     private Canvas mCanvas;
-    private Paint mPaint;
-    private Paint mBackupPaint;
-    private Paint erasePaint;
     private Bitmap mBitmap;
+
+    private Canvas mBackgroundImgCanvas;
+    private Bitmap mBackgroundImgBitmap;
+
+    private Paint mPaint;
     private Rect mInvalidateRect;
 
     private List<HistoricalAction> history = new ArrayList<>();
@@ -66,8 +70,14 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
     private float mScaleFactor = 1f;
     private float lastFocusX, lastFocusY;
 
+    private int eraserSize = 50;
     private ImageView onEraserIcon;
     FrameLayout.LayoutParams eraserLayout = new LayoutParams(eraserSize, eraserSize);
+
+
+    /* for touch event test */
+    private TestTextView testText;
+
 
     public CanvasView(Context context) {
         super(context);
@@ -98,12 +108,19 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
         setOnTouchListener(this);
 
+        /* init eraser pointer */
         this.onEraserIcon = new ImageView(mContext);
         this.onEraserIcon.setImageResource(R.drawable.ic_oneraser_black_24dp);
         this.onEraserIcon.setLayoutParams(eraserLayout);
         this.onEraserIcon.setVisibility(INVISIBLE);
-
         this.addView(this.onEraserIcon);
+
+        testText = new TestTextView(mContext);
+        testText.setLayoutParams(new FrameLayout.LayoutParams(500, 110));
+        testText.setText("this is testText");
+        testText.setBackgroundColor(Color.BLUE);
+        testText.setVisibility(View.VISIBLE);
+        this.addView(testText);
 
         this.mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         this.mPaint.setAntiAlias(true);
@@ -129,7 +146,10 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
                         Bitmap init = Bitmap.createBitmap(getWidth(), getHeight(), Bitmap.Config.ARGB_8888);
                         mBitmap = init.copy(Bitmap.Config.ARGB_8888, true);
+                        mBackgroundImgBitmap = init.copy(Bitmap.Config.ARGB_8888, true);
+
                         mCanvas = new Canvas(mBitmap);
+                        mBackgroundImgCanvas = new Canvas(mBackgroundImgBitmap);
 
                         Paint rect_paint = new Paint();
                         rect_paint.setStyle(Paint.Style.FILL);
@@ -195,6 +215,10 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
     @Override
     protected void onDraw(Canvas canvas) {
         canvas.save();
+        if(mBackgroundImgBitmap != null){
+            canvas.drawBitmap(mBackgroundImgBitmap, drawMatrix, null);
+
+        }
         canvas.drawBitmap(this.mBitmap, drawMatrix, null);
         canvas.restore();
         super.onDraw(canvas);
@@ -202,6 +226,7 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
     @Override
     public boolean onTouch(View v, MotionEvent event) {
+        Log.d(TAG, "onTouch called");
         mScaleDetector.onTouchEvent(event);
 
         if (event.getPointerCount() == 1) {
@@ -215,11 +240,11 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
             float p = event.getPressure();
 
             switch (event.getActionMasked()) {
-                case MotionEvent.ACTION_UP:
-                    if (this.penMode == PenMode.ERASER) {
-                        onEraserIcon.setVisibility(INVISIBLE);
-                        break;
-                    }
+                    case MotionEvent.ACTION_UP:
+                        if (this.penMode == PenMode.ERASER) {
+                            onEraserIcon.setVisibility(INVISIBLE);
+                            break;
+                        }
                     // if pen mode is not eraser, same with ACTION_MOVE
                 case MotionEvent.ACTION_MOVE:
 
