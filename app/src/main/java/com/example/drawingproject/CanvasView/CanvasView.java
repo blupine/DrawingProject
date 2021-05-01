@@ -17,8 +17,6 @@ import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -27,7 +25,6 @@ import com.example.drawingproject.CanvasView.Utils.DrawAction;
 import com.example.drawingproject.CanvasView.Utils.EraseAction;
 import com.example.drawingproject.CanvasView.Utils.HistoricalAction;
 import com.example.drawingproject.CanvasView.Utils.PenMode;
-import com.example.drawingproject.CanvasView.Utils.StrokePath;
 import com.example.drawingproject.CanvasView.Utils.TestTextView;
 import com.example.drawingproject.R;
 
@@ -115,12 +112,12 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
         this.onEraserIcon.setVisibility(INVISIBLE);
         this.addView(this.onEraserIcon);
 
-        testText = new TestTextView(mContext);
-        testText.setLayoutParams(new FrameLayout.LayoutParams(500, 110));
-        testText.setText("this is testText");
-        testText.setBackgroundColor(Color.BLUE);
-        testText.setVisibility(View.VISIBLE);
-        this.addView(testText);
+//        testText = new TestTextView(mContext);
+//        testText.setLayoutParams(new FrameLayout.LayoutParams(500, 110));
+//        testText.setText("this is testText");
+//        testText.setBackgroundColor(Color.BLUE);
+//        testText.setVisibility(View.VISIBLE);
+//        this.addView(testText);
 
         this.mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         this.mPaint.setAntiAlias(true);
@@ -146,7 +143,7 @@ public class CanvasView extends FrameLayout implements View.OnTouchListener {
 
                         Bitmap init = Bitmap.createBitmap(getWidth(), getHeight(), Bitmap.Config.ARGB_8888);
                         mBitmap = init.copy(Bitmap.Config.ARGB_8888, true);
-                        mBackgroundImgBitmap = init.copy(Bitmap.Config.ARGB_8888, true);
+                        mBackgroundImgBitmap = init.copy(Bitmap.Config.ARGB_4444, true);
 
                         mCanvas = new Canvas(mBitmap);
                         mBackgroundImgCanvas = new Canvas(mBackgroundImgBitmap);
